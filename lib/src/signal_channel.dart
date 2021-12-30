@@ -110,4 +110,6 @@ class SignalChannel {
       if (!complete.isCompleted) complete.complete(APIResult.success(data));
     }
   }
+
+  HubConnectionState get state => _hubConnection?.state;
 }
