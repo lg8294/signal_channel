@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:dio/dio.dart';
 import 'package:hwkj_api_core/hwkj_api_core.dart';
+import 'package:uuid/uuid.dart';
 
 import 'constants.dart';
 import 'signal_channel.dart';
@@ -14,10 +15,9 @@ class SignalInterceptor extends Interceptor {
   Duration timeout;
   @override
   Future onRequest(RequestOptions options) async {
-    final requestId = DateTime.now().millisecondsSinceEpoch.toString();
+    final requestId = Uuid().v4();
     options.headers.addAll({
       HeaderSignalRCallbackKey: kRequestResponseChannelKey,
-      // HeaderSignalRTypeKey: Uuid().v4(),
       HeaderSignalRTypeKey: requestId,
     });
     options.extra[requestId] = _add202Handler(requestId);
@@ -31,8 +31,6 @@ class SignalInterceptor extends Interceptor {
     if (response.statusCode == 200) {
       final r = ApiClient.globalParseResponseData(response);
       if (r.type == 202) {
-        // final r1 =
-        //     await _handle202(response.request.headers[HeaderSignalRTypeKey]);
         final r1 = await response.request.extra[requestId];
 
         if (r1.success) {
