@@ -81,7 +81,7 @@ class SignalChannel {
       await _hubConnection.start();
       stateNotifier.value = SignalChannelState.Connected;
     } catch (e, trace) {
-      _logger.e('signal_channel start', e, trace);
+      _logger?.e('signal_channel start', e, trace);
       stateNotifier.value = SignalChannelState.Disconnected;
       throw e;
     }
