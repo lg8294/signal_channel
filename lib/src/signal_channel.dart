@@ -5,9 +5,9 @@ import 'package:hwkj_api_core/hwkj_api_core.dart';
 import 'package:lg_signalr_client/lg_signalr_client.dart';
 import 'package:logger/logger.dart';
 import 'package:logging/logging.dart' as log;
+import 'package:signal_channel/src/utils.dart';
 
 import 'constants.dart';
-import 'error.dart';
 
 typedef SignalInterceptorHook = void Function(String requestId);
 
@@ -37,8 +37,10 @@ class SignalChannel {
   /// 意外断开后是否需要重连
   bool _needReconnect;
 
+  Map<String, List<MethodInvocationFunc>> _methods;
+
   /// 待处理请求集合
-  Map<String, Completer<APIResult>> _requestMap = {};
+  Map<String, Completer<APIResult>> _requestMap;
 
   ValueNotifier<SignalChannelState> stateNotifier;
 
@@ -47,6 +49,8 @@ class SignalChannel {
   SignalChannel(String url, AccessTokenFactory accessTokenFactory)
       : this._url = url,
         this._accessTokenFactory = accessTokenFactory {
+    _methods = {};
+    _requestMap = {};
     stateNotifier = ValueNotifier(SignalChannelState.Disconnected);
   }
 
@@ -77,6 +81,12 @@ class SignalChannel {
       _hubConnection.on(kRequestResponseChannelKey, _handleRequestResponse);
       _hubConnection.onClose(_connectionClose);
 
+      _methods?.forEach((methodName, methodList) {
+        methodList.forEach((newMethod) {
+          _hubConnection.on(methodName, newMethod);
+        });
+      });
+
       _needReconnect = true;
       await _hubConnection.start();
       stateNotifier.value = SignalChannelState.Connected;
@@ -99,6 +109,7 @@ class SignalChannel {
       element.complete(APIResult.failure('连接断开', null));
     });
     _requestMap.clear();
+    _methods.clear();
 
     if (preHub?.state == HubConnectionState.Connected) await preHub?.stop();
     stateNotifier.value = SignalChannelState.Disconnected;
@@ -118,14 +129,72 @@ class SignalChannel {
       stateNotifier.value = SignalChannelState.Disconnected;
   }
 
+  // void on(String methodName, MethodInvocationFunc newMethod) {
+  //   if (_hubConnection == null) throw SignalRChannelError('先执行 start');
+  //   _hubConnection.on(methodName, newMethod);
+  // }
+  //
+  // void off(String methodName, {MethodInvocationFunc method}) {
+  //   if (_hubConnection == null) throw SignalRChannelError('先执行 start');
+  //   _hubConnection.off(methodName, method: method);
+  // }
+
+  ///  Registers a handler that will be invoked when the hub method with the specified method name is invoked.
+  ///
+  /// methodName: The name of the hub method to define.
+  /// newMethod: The handler that will be raised when the hub method is invoked.
+  ///
   void on(String methodName, MethodInvocationFunc newMethod) {
-    if (_hubConnection == null) throw SignalRChannelError('先执行 start');
-    _hubConnection.on(methodName, newMethod);
+    if (isStringEmpty(methodName) || newMethod == null) {
+      return;
+    }
+
+    methodName = methodName.toLowerCase();
+    if (_methods[methodName] == null) {
+      _methods[methodName] = [];
+    }
+
+    // Preventing adding the same handler multiple times.
+    if (_methods[methodName].indexOf(newMethod) != -1) {
+      return;
+    }
+
+    _methods[methodName].add(newMethod);
+    _hubConnection?.on(methodName, newMethod);
   }
 
+  /// Removes the specified handler for the specified hub method.
+  ///
+  /// You must pass the exact same Function instance as was previously passed to HubConnection.on. Passing a different instance (even if the function
+  /// body is the same) will not remove the handler.
+  ///
+  /// methodName: The name of the method to remove handlers for.
+  /// method: The handler to remove. This must be the same Function instance as the one passed to {@link @aspnet/signalr.HubConnection.on}.
+  /// If the method handler is omitted, all handlers for that method will be removed.
+  ///
   void off(String methodName, {MethodInvocationFunc method}) {
-    if (_hubConnection == null) throw SignalRChannelError('先执行 start');
-    _hubConnection.off(methodName, method: method);
+    if (isStringEmpty(methodName)) {
+      return;
+    }
+
+    methodName = methodName.toLowerCase();
+    final handlers = _methods[methodName];
+    if (handlers == null) {
+      return;
+    }
+
+    if (method != null) {
+      final removeIdx = handlers.indexOf(method);
+      if (removeIdx != -1) {
+        handlers.removeAt(removeIdx);
+        if (handlers.length == 0) {
+          _methods.remove(methodName);
+        }
+      }
+    } else {
+      _methods.remove(methodName);
+    }
+    _hubConnection?.off(methodName, method: method);
   }
 
   /// 添加待处理的请求
