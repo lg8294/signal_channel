@@ -109,7 +109,6 @@ class SignalChannel {
       element.complete(APIResult.failure('连接断开', null));
     });
     _requestMap.clear();
-    _methods.clear();
 
     if (preHub?.state == HubConnectionState.Connected) await preHub?.stop();
     stateNotifier.value = SignalChannelState.Disconnected;
@@ -138,6 +137,10 @@ class SignalChannel {
   //   if (_hubConnection == null) throw SignalRChannelError('先执行 start');
   //   _hubConnection.off(methodName, method: method);
   // }
+
+  void cleanMethods() {
+    _methods.clear();
+  }
 
   ///  Registers a handler that will be invoked when the hub method with the specified method name is invoked.
   ///
