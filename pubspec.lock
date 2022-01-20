@@ -99,8 +99,8 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: "0.1.0"
-      resolved-ref: b5f00c7b80a87816dd6949ff0f6406a7843fd398
+      ref: "0.1.1"
+      resolved-ref: "406548fe7bce4e1b0dc3735e924599be14a5a1d9"
       url: "https://gitlab-dev.kangfx.com/kangfx/app/hwkj_api_core.git"
     source: git
     version: "0.0.1"
