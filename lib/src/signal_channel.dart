@@ -79,6 +79,8 @@ class SignalChannel {
           .build();
 
       _hubConnection.on(kRequestResponseChannelKey, _handleRequestResponse);
+      _hubConnection.on(
+          kCloseConnectionFromServerSide, _handleCloseConnectionFromServerSide);
       _hubConnection.onClose(_connectionClose);
 
       _methods?.forEach((methodName, methodList) {
@@ -229,4 +231,9 @@ class SignalChannel {
   }
 
   HubConnectionState get state => _hubConnection?.state;
+
+  void _handleCloseConnectionFromServerSide(List<Object> arguments) {
+    _logger?.v('服务端请求关闭连接 $arguments');
+    stop();
+  }
 }
