@@ -18,7 +18,7 @@ dependencies:
   hwkj_api_core:
     git:
       url: https://gitlab-dev.kangfx.com/kangfx/app/hwkj_api_core.git
-      ref: 0.1.6
+      ref: 0.1.7
 
 dependency_overrides:
 #  hwkj_api_core:
