@@ -13,8 +13,9 @@ const _defaultTimeout = Duration(seconds: 60);
 class SignalInterceptor extends Interceptor {
   /// 处理超时
   Duration timeout;
+
   @override
-  Future onRequest(RequestOptions options) async {
+  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
     final requestId = Uuid().v4();
     options.headers.addAll({
       HeaderSignalRCallbackKey: kRequestResponseChannelKey,
@@ -22,16 +23,16 @@ class SignalInterceptor extends Interceptor {
     });
     options.extra[requestId] = _add202Handler(requestId);
 
-    return options;
+    handler.next(options);
   }
 
   @override
-  Future onResponse(Response response) async {
-    final requestId = response.request.headers[HeaderSignalRTypeKey];
+  void onResponse(Response response, ResponseInterceptorHandler handler) async {
+    final requestId = response.requestOptions.headers[HeaderSignalRTypeKey];
     if (response.statusCode == 200) {
       final r = ApiClient.globalParseResponseData(response);
       if (r.type == 202) {
-        final r1 = await response.request.extra[requestId];
+        final r1 = await response.requestOptions.extra[requestId];
 
         if (r1.success) {
           // 成功后，r1.data 中包含 Code,Content,Data字段
@@ -47,7 +48,7 @@ class SignalInterceptor extends Interceptor {
         _remove202Handler(requestId);
       }
     }
-    return response;
+    handler.next(response);
   }
 
   /// 处理202响应
