@@ -87,13 +87,13 @@ packages:
       name: http_parser
       url: "https://pub.flutter-io.cn"
     source: hosted
-    version: "4.0.1"
+    version: "4.0.2"
   hwkj_api_core:
     dependency: "direct main"
     description:
       path: "."
       ref: null-safety
-      resolved-ref: f69953e280521855d29ec1f3165711836273cf06
+      resolved-ref: "25ee26d07321ddea08750f6e82a03c18430a5704"
       url: "https://gitlab-dev.kangfx.com/kangfx/app/hwkj_api_core.git"
     source: git
     version: "0.0.1"
@@ -220,7 +220,7 @@ packages:
       name: uuid
       url: "https://pub.flutter-io.cn"
     source: hosted
-    version: "3.0.6"
+    version: "3.0.7"
   vector_math:
     dependency: transitive
     description:
