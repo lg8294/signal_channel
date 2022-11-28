@@ -92,7 +92,7 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: null-safety
+      ref: "0.2.0"
       resolved-ref: "25ee26d07321ddea08750f6e82a03c18430a5704"
       url: "https://gitlab-dev.kangfx.com/kangfx/app/hwkj_api_core.git"
     source: git
