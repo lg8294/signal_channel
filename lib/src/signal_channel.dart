@@ -4,7 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:hwkj_api_core/hwkj_api_core.dart';
 import 'package:lg_signalr_client/lg_signalr_client.dart';
 import 'package:logger/logger.dart';
-import 'package:logging/logging.dart' as log;
+import 'package:logging/logging.dart' as logging;
 import 'package:signal_channel/src/utils.dart';
 
 import 'constants.dart';
@@ -75,7 +75,7 @@ class SignalChannel {
                 accessTokenFactory: _accessTokenFactory,
                 skipNegotiation: true,
               ))
-          .configureLogging(log.Logger('$this'))
+          .configureLogging(logging.Logger('$this'))
           .build();
 
       _hubConnection.on(kRequestResponseChannelKey, _handleRequestResponse);
@@ -150,7 +150,7 @@ class SignalChannel {
   /// newMethod: The handler that will be raised when the hub method is invoked.
   ///
   void on(String methodName, MethodInvocationFunc newMethod) {
-    if (isStringEmpty(methodName) || newMethod == null) {
+    if (isEmpty(methodName)) {
       return;
     }
 
@@ -178,7 +178,7 @@ class SignalChannel {
   /// If the method handler is omitted, all handlers for that method will be removed.
   ///
   void off(String methodName, {MethodInvocationFunc method}) {
-    if (isStringEmpty(methodName)) {
+    if (isEmpty(methodName)) {
       return;
     }
 
@@ -235,5 +235,33 @@ class SignalChannel {
   void _handleCloseConnectionFromServerSide(List<Object> arguments) {
     _logger?.v('服务端请求关闭连接 $arguments');
     stop();
+  }
+
+  /// Invokes a hub method on the server using the specified name and arguments. Does not wait for a response from the receiver.
+  ///
+  /// The Promise returned by this method resolves when the client has sent the invocation to the server. The server may still
+  /// be processing the invocation.
+  ///
+  /// methodName: The name of the server method to invoke.
+  /// args: The arguments used to invoke the server method.
+  /// Returns a Promise that resolves when the invocation has been successfully sent, or rejects with an error.
+  ///
+  Future<void> send(String methodName, List<Object> args) {
+    return _hubConnection.send(methodName, args);
+  }
+
+  /// Invokes a hub method on the server using the specified name and arguments.
+  ///
+  /// The Future returned by this method resolves when the server indicates it has finished invoking the method. When the Future
+  /// resolves, the server has finished invoking the method. If the server method returns a result, it is produced as the result of
+  /// resolving the Promise.
+  ///
+  /// methodName: The name of the server method to invoke.
+  /// args: The arguments used to invoke the server method.
+  /// Returns a Future that resolves with the result of the server method (if any), or rejects with an error.
+  ///
+
+  Future<Object> invoke(String methodName, {List<Object> args}) {
+    return _hubConnection.invoke(methodName, args: args);
   }
 }
