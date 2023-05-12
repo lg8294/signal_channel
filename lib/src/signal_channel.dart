@@ -2,20 +2,20 @@ import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
 import 'package:hwkj_api_core/hwkj_api_core.dart';
-import 'package:lg_signalr_client/lg_signalr_client.dart';
 import 'package:logger/logger.dart';
 import 'package:logging/logging.dart' as logging;
 import 'package:signal_channel/src/utils.dart';
+import 'package:signalr_netcore/signalr_client.dart';
 
 import 'constants.dart';
 
 typedef SignalInterceptorHook = void Function(String requestId);
 
 class SignalChannelHooks {
-  SignalInterceptorHook didAddRequest;
-  SignalInterceptorHook didReceiveResponse;
-  SignalInterceptorHook didRemoveRequest;
-  SignalInterceptorHook didReceiveResponseWithoutRequest;
+  SignalInterceptorHook? didAddRequest;
+  SignalInterceptorHook? didReceiveResponse;
+  SignalInterceptorHook? didRemoveRequest;
+  SignalInterceptorHook? didReceiveResponseWithoutRequest;
 }
 
 enum SignalChannelState {
@@ -27,24 +27,24 @@ enum SignalChannelState {
 }
 
 class SignalChannel {
-  static SignalChannel globalSignalChannel;
+  static SignalChannel? globalSignalChannel;
 
   final String _url;
   final AccessTokenFactory _accessTokenFactory;
-  Logger _logger;
-  HubConnection _hubConnection;
+  Logger? _logger;
+  HubConnection? _hubConnection;
 
   /// 意外断开后是否需要重连
-  bool _needReconnect;
+  late bool _needReconnect;
 
-  Map<String, List<MethodInvocationFunc>> _methods;
+  late Map<String, List<MethodInvocationFunc>> _methods;
 
   /// 待处理请求集合
-  Map<String, Completer<APIResult>> _requestMap;
+  late Map<String, Completer<APIResult>> _requestMap;
 
-  ValueNotifier<SignalChannelState> stateNotifier;
+  late ValueNotifier<SignalChannelState> stateNotifier;
 
-  SignalChannelHooks hooks;
+  SignalChannelHooks? hooks;
 
   SignalChannel(String url, AccessTokenFactory accessTokenFactory)
       : this._url = url,
@@ -78,19 +78,19 @@ class SignalChannel {
           .configureLogging(logging.Logger('$this'))
           .build();
 
-      _hubConnection.on(kRequestResponseChannelKey, _handleRequestResponse);
-      _hubConnection.on(
+      _hubConnection!.on(kRequestResponseChannelKey, _handleRequestResponse);
+      _hubConnection!.on(
           kCloseConnectionFromServerSide, _handleCloseConnectionFromServerSide);
-      _hubConnection.onClose(_connectionClose);
+      _hubConnection!.onclose(_connectionClose);
 
-      _methods?.forEach((methodName, methodList) {
+      _methods.forEach((methodName, methodList) {
         methodList.forEach((newMethod) {
-          _hubConnection.on(methodName, newMethod);
+          _hubConnection!.on(methodName, newMethod);
         });
       });
 
       _needReconnect = true;
-      await _hubConnection.start();
+      await _hubConnection!.start();
       stateNotifier.value = SignalChannelState.Connected;
     } catch (e, trace) {
       _logger?.e('signal_channel start', e, trace);
@@ -100,7 +100,7 @@ class SignalChannel {
   }
 
   Future stop({bool autoReconnect = false}) async {
-    _needReconnect = autoReconnect ?? false;
+    _needReconnect = autoReconnect;
 
     final preHub = _hubConnection;
     _hubConnection = null;
@@ -122,7 +122,7 @@ class SignalChannel {
     return start();
   }
 
-  void _connectionClose(Exception error) {
+  void _connectionClose({Exception? error}) {
     _logger?.e('', error);
     if (_needReconnect)
       reconnect();
@@ -160,11 +160,11 @@ class SignalChannel {
     }
 
     // Preventing adding the same handler multiple times.
-    if (_methods[methodName].indexOf(newMethod) != -1) {
+    if (_methods[methodName]!.indexOf(newMethod) != -1) {
       return;
     }
 
-    _methods[methodName].add(newMethod);
+    _methods[methodName]!.add(newMethod);
     _hubConnection?.on(methodName, newMethod);
   }
 
@@ -177,13 +177,13 @@ class SignalChannel {
   /// method: The handler to remove. This must be the same Function instance as the one passed to {@link @aspnet/signalr.HubConnection.on}.
   /// If the method handler is omitted, all handlers for that method will be removed.
   ///
-  void off(String methodName, {MethodInvocationFunc method}) {
+  void off(String methodName, {MethodInvocationFunc? method}) {
     if (isEmpty(methodName)) {
       return;
     }
 
     methodName = methodName.toLowerCase();
-    final handlers = _methods[methodName];
+    final List<void Function(List<Object>)>? handlers = _methods[methodName];
     if (handlers == null) {
       return;
     }
@@ -220,19 +220,19 @@ class SignalChannel {
   void _handleRequestResponse(arguments) {
     _logger?.v('处理响应 $arguments');
     Map data = arguments.first;
-    final String requestId = data['SignalrType'];
+    final String? requestId = data['SignalrType'];
     if (_requestMap.containsKey(requestId)) {
-      hooks?.didReceiveResponse?.call(requestId);
-      final complete = _requestMap.remove(requestId);
+      hooks?.didReceiveResponse?.call(requestId!);
+      final complete = _requestMap.remove(requestId)!;
       if (!complete.isCompleted) complete.complete(APIResult.success(data));
     } else {
-      hooks?.didReceiveResponseWithoutRequest?.call(requestId);
+      hooks?.didReceiveResponseWithoutRequest?.call(requestId!);
     }
   }
 
-  HubConnectionState get state => _hubConnection?.state;
+  HubConnectionState? get state => _hubConnection?.state;
 
-  void _handleCloseConnectionFromServerSide(List<Object> arguments) {
+  void _handleCloseConnectionFromServerSide(List<Object?>? arguments) {
     _logger?.v('服务端请求关闭连接 $arguments');
     stop();
   }
@@ -247,7 +247,7 @@ class SignalChannel {
   /// Returns a Promise that resolves when the invocation has been successfully sent, or rejects with an error.
   ///
   Future<void> send(String methodName, List<Object> args) {
-    return _hubConnection.send(methodName, args);
+    return _hubConnection!.send(methodName, args: args);
   }
 
   /// Invokes a hub method on the server using the specified name and arguments.
@@ -261,7 +261,7 @@ class SignalChannel {
   /// Returns a Future that resolves with the result of the server method (if any), or rejects with an error.
   ///
 
-  Future<Object> invoke(String methodName, {List<Object> args}) {
-    return _hubConnection.invoke(methodName, args: args);
+  Future<Object?> invoke(String methodName, {List<Object>? args}) {
+    return _hubConnection!.invoke(methodName, args: args);
   }
 }

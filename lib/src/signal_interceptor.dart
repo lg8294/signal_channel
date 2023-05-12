@@ -12,7 +12,7 @@ const _defaultTimeout = Duration(seconds: 60);
 
 class SignalInterceptor extends Interceptor {
   /// 处理超时
-  Duration timeout;
+  Duration? timeout;
 
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {

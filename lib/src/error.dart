@@ -1,7 +1,7 @@
 class SignalRChannelError implements Exception {
   static final String tag = 'SignalRChannel';
 
-  final String message;
+  final String? message;
 
   SignalRChannelError([this.message]);
 
