@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:hwkj_api_core/hwkj_api_core.dart';
 import 'package:logger/logger.dart';
 import 'package:logging/logging.dart' as logging;
+import 'package:signal_channel/src/error.dart';
 import 'package:signal_channel/src/utils.dart';
 import 'package:signalr_netcore/signalr_client.dart';
 
@@ -28,10 +29,10 @@ enum SignalChannelState {
 
 class SignalChannel {
   static SignalChannel? globalSignalChannel;
+  static Logger? logger;
 
   final String _url;
   final AccessTokenFactory _accessTokenFactory;
-  Logger? _logger;
   HubConnection? _hubConnection;
 
   /// 意外断开后是否需要重连
@@ -58,12 +59,6 @@ class SignalChannel {
     stateNotifier.dispose();
   }
 
-  /// 设置打印日志
-  SignalChannel configWithLogger(Logger logger) {
-    _logger = logger;
-    return this;
-  }
-
   Future start() async {
     try {
       if (_hubConnection?.state == HubConnectionState.Connected) return;
@@ -80,7 +75,7 @@ class SignalChannel {
 
       _hubConnection!.on(kRequestResponseChannelKey, _handleRequestResponse);
       _hubConnection!.on(
-          kCloseConnectionFromServerSide, _handleCloseConnectionFromServerSide);
+          kCloseConnectionFromServerSide, _handleConnectionCloseFromServerSide);
       _hubConnection!.onclose(_connectionClose);
 
       _methods.forEach((methodName, methodList) {
@@ -93,9 +88,9 @@ class SignalChannel {
       await _hubConnection!.start();
       stateNotifier.value = SignalChannelState.Connected;
     } catch (e, trace) {
-      _logger?.e('signal_channel start', e, trace);
+      logger?.e(SignalRChannelError('start 异常'), e, trace);
       stateNotifier.value = SignalChannelState.Disconnected;
-      throw e;
+      rethrow;
     }
   }
 
@@ -123,22 +118,12 @@ class SignalChannel {
   }
 
   void _connectionClose({Exception? error}) {
-    _logger?.e('', error);
+    logger?.w('$runtimeType 链接断开', error);
     if (_needReconnect)
       reconnect();
     else
       stateNotifier.value = SignalChannelState.Disconnected;
   }
-
-  // void on(String methodName, MethodInvocationFunc newMethod) {
-  //   if (_hubConnection == null) throw SignalRChannelError('先执行 start');
-  //   _hubConnection.on(methodName, newMethod);
-  // }
-  //
-  // void off(String methodName, {MethodInvocationFunc method}) {
-  //   if (_hubConnection == null) throw SignalRChannelError('先执行 start');
-  //   _hubConnection.off(methodName, method: method);
-  // }
 
   void cleanMethods() {
     _methods.clear();
@@ -204,21 +189,21 @@ class SignalChannel {
 
   /// 添加待处理的请求
   void addRequest(String requestId, Completer<APIResult> completer) {
-    _logger?.v('添加待处理请求 $requestId');
+    logger?.v('添加待处理请求 $requestId');
     _requestMap[requestId] = completer;
     hooks?.didAddRequest?.call(requestId);
   }
 
   /// 移除请求
   void removeRequest(String requestId) {
-    _logger?.v('移除待处理请求 $requestId');
+    logger?.v('移除待处理请求 $requestId');
     _requestMap.remove(requestId);
     hooks?.didRemoveRequest?.call(requestId);
   }
 
   /// 处理请求的响应结果
   void _handleRequestResponse(arguments) {
-    _logger?.v('处理响应 $arguments');
+    logger?.v('处理响应 $arguments');
     Map data = arguments.first;
     final String? requestId = data['SignalrType'];
     if (_requestMap.containsKey(requestId)) {
@@ -232,8 +217,8 @@ class SignalChannel {
 
   HubConnectionState? get state => _hubConnection?.state;
 
-  void _handleCloseConnectionFromServerSide(List<Object?>? arguments) {
-    _logger?.v('服务端请求关闭连接 $arguments');
+  void _handleConnectionCloseFromServerSide(List<Object?>? arguments) {
+    logger?.i('服务端请求关闭连接 $arguments');
     stop();
   }
 

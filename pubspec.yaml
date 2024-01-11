@@ -1,6 +1,6 @@
 name: signal_channel
 description: A new package for APP signal.
-version: 0.0.1
+version: 0.1.0
 homepage: https://github.com/lg8294/signal_channel.git
 
 environment:

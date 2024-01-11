@@ -1,3 +1,7 @@
-## [0.0.1] - TODO: Add release date.
+## [0.1.0] - 2024-01-11
 
-* TODO: Describe initial release.
+* update api
+
+## [0.0.1]
+
+* init
