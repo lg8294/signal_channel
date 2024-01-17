@@ -118,7 +118,7 @@ class SignalChannel {
   }
 
   void _connectionClose({Exception? error}) {
-    logger?.w('$runtimeType 链接断开', error);
+    logger?.v('$runtimeType 链接断开', error);
     if (_needReconnect)
       reconnect();
     else
