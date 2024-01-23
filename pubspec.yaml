@@ -1,21 +1,22 @@
 name: signal_channel
 description: A new package for APP signal.
-version: 0.1.1
+version: 1.0.0
 homepage: https://github.com/lg8294/signal_channel.git
 
 environment:
-  sdk: '>=2.12.0 <3.0.0'
+  sdk: '>=3.0.0 <4.0.0'
 
 dependencies:
   flutter:
     sdk: flutter
-  dio: ^4.0.6
+#  dio: ^5.0.0
   uuid: ^3.0.6
   logger: ^1.1.0
   logging: ^1.1.1
 #  lg_signalr_client: ^0.2.0
   signalr_netcore: ^1.3.3
-  hwkj_api_core: ^0.0.1
+  hwkj_api_core: ^1.0.1
+#    path: ../hwkj_api_core
 #    git:
 #      url: https://gitlab-dev.kangfx.com/kangfx/app/hwkj_api_core.git
 #      ref: 0.3.0

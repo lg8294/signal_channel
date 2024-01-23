@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:dio/dio.dart';
 import 'package:hwkj_api_core/hwkj_api_core.dart';
 import 'package:uuid/uuid.dart';
 
