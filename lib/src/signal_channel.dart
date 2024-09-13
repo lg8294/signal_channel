@@ -88,7 +88,7 @@ class SignalChannel {
       await _hubConnection!.start();
       stateNotifier.value = SignalChannelState.Connected;
     } catch (e, trace) {
-      logger?.e(SignalRChannelError('start 异常'), e, trace);
+      logger?.e(SignalRChannelError('start 异常'), error: e, stackTrace: trace);
       stateNotifier.value = SignalChannelState.Disconnected;
       rethrow;
     }
@@ -118,7 +118,7 @@ class SignalChannel {
   }
 
   void _connectionClose({Exception? error}) {
-    logger?.v('$runtimeType 链接断开', error);
+    logger?.t('$runtimeType 链接断开', error: error);
     if (_needReconnect)
       reconnect();
     else
@@ -189,21 +189,21 @@ class SignalChannel {
 
   /// 添加待处理的请求
   void addRequest(String requestId, Completer<APIResult> completer) {
-    logger?.v('添加待处理请求 $requestId');
+    logger?.t('添加待处理请求 $requestId');
     _requestMap[requestId] = completer;
     hooks?.didAddRequest?.call(requestId);
   }
 
   /// 移除请求
   void removeRequest(String requestId) {
-    logger?.v('移除待处理请求 $requestId');
+    logger?.t('移除待处理请求 $requestId');
     _requestMap.remove(requestId);
     hooks?.didRemoveRequest?.call(requestId);
   }
 
   /// 处理请求的响应结果
   void _handleRequestResponse(arguments) {
-    logger?.v('处理响应 $arguments');
+    logger?.t('处理响应 $arguments');
     Map data = arguments.first;
     final String? requestId = data['SignalrType'];
     if (_requestMap.containsKey(requestId)) {
