@@ -38,6 +38,7 @@ class SignalChannel {
   /// 意外断开后是否需要重连
   late bool _needReconnect;
 
+  late Map<MethodInvocationFunc, MethodInvocationFunc> _methodMap;
   late Map<String, List<MethodInvocationFunc>> _methods;
 
   /// 待处理请求集合
@@ -50,6 +51,7 @@ class SignalChannel {
   SignalChannel(String url, AccessTokenFactory accessTokenFactory)
       : this._url = url,
         this._accessTokenFactory = accessTokenFactory {
+    _methodMap = {};
     _methods = {};
     _requestMap = {};
     stateNotifier = ValueNotifier(SignalChannelState.Disconnected);
@@ -149,8 +151,17 @@ class SignalChannel {
       return;
     }
 
-    _methods[methodName]!.add(newMethod);
-    _hubConnection?.on(methodName, newMethod);
+    final _newM = (args) {
+      try {
+        newMethod(args);
+      } catch (e, stackTrace) {
+        logger?.e('$methodName 事件执行异常', error: e, stackTrace: stackTrace);
+      }
+    };
+
+    _methodMap[newMethod] = _newM;
+    _methods[methodName]!.add(_newM);
+    _hubConnection?.on(methodName, _newM);
   }
 
   /// Removes the specified handler for the specified hub method.
@@ -174,17 +185,21 @@ class SignalChannel {
     }
 
     if (method != null) {
-      final removeIdx = handlers.indexOf(method);
+      final _newM = _methodMap[method];
+      if (_newM == null) return;
+
+      final removeIdx = handlers.indexOf(_newM);
       if (removeIdx != -1) {
         handlers.removeAt(removeIdx);
         if (handlers.length == 0) {
           _methods.remove(methodName);
         }
       }
+      _hubConnection?.off(methodName, method: _newM);
     } else {
       _methods.remove(methodName);
+      _hubConnection?.off(methodName);
     }
-    _hubConnection?.off(methodName, method: method);
   }
 
   /// 添加待处理的请求
